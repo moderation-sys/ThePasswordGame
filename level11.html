@@ -384,19 +384,16 @@
     }
 
     // สำเร็จโหมดพิเศษ
-    // JS
-const nextBtn = document.getElementById("nextButton");
-
     function successSpecialMode() {
-  message.innerHTML = "<p style='color:lime'>✅ ผ่านด่านโหมดพิเศษ!</p>";
-  passwordInput.disabled = true;
-  confirmInput.disabled = true;
-  checkBtn.disabled = true;
+        message.innerHTML = "<p style='color:lime'>✅ ผ่านด่านโหมดพิเศษ!</p>";
+        passwordInput.disabled = true;
+        confirmInput.disabled = true;
+        checkBtn.disabled = true;
 
   // แสดงปุ่ม END และใส่ลิงก์
-  nextBtn.style.display = "block";
-  nextBtn.onclick = () => {
-    location.href = "level0.html";
+        nextBtn.style.display = "block";
+        nextBtn.onclick = () => {
+        location.href = "level0.html";
   };
 
   container.classList.add("glow");
