@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Password Game - Level 10 (เงื่อนไขพิเศษใหม่)</title>
+  <style>
+    body {
+      margin: 0; padding: 20px;
+      background: #000;
+      color: #00ff00;
+      font-family: monospace;
+      user-select: none;
+      overflow-x: hidden;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 1.3em;
+      background: #111;
+      color: #0f0;
+      border: 2px solid #0f0;
+      border-radius: 5px;
+      outline: none;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1.1em;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      color: black;
+      background: #fff200;
+      margin-top: 10px;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+      color: #ccc;
+    }
+    #rules .rule {
+      margin: 5px 0;
+    }
+    .pass { color: #0f0; }
+    .fail { color: #f33; }
+
+    #winFlash {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: red;
+      opacity: 0;
+      z-index: 999;
+      pointer-events: none;
+      transition: opacity 0.1s ease-out;
+      filter: drop-shadow(0 0 10px red);
+    }
+
+    #nextButton {
+      display: none;
+      margin-top: 20px;
+      background: gold;
+      color: black;
+      font-weight: bold;
+      box-shadow: 0 0 20px gold;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .shake {
+      animation: shake 0.5s;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>🔐 PASSWORD GAME: LEVEL 10 🔐</h1>
+  <p>ตั้งรหัสผ่านที่ผ่านเงื่อนไขทั้งหมดด้านล่าง</p>
+
+  <div id="step1">
+    <input type="password" id="pw1" placeholder="รหัสผ่าน" autocomplete="off" />
+    <input type="password" id="pw2" placeholder="ยืนยันรหัสผ่านอีกครั้ง" autocomplete="off" />
+    <div id="rules"></div>
+  </div>
+
+  <div id="step2" style="display:none;">
+    <p>รหัสผ่านของถูกแปลงเป็นเงื่อนไขพิเศษ กรุณากรอกคำตอบที่แปลงแล้วสองรอบ เพื่อยืนยัน</p>
+    <p><b>เงื่อนไขแปลงสูตรใหม่:นำรหัสผ่านที่ใส่เมื่อครู่มาแปลงใหม่</b><br>
+      - ตัวเลขทุกตัวในรหัสนำมาลบ 1 (0 → 9)<br>
+      - ตัวอักษรสระ (a, e, i, o, u) แปลงเป็นตัวพิมพ์ใหญ่ทั้งหมด<br>
+      - ลบอักขระพิเศษทั้งหมดออก (@#$%^&*!)<br>
+    </p>
+    <input type="text" id="specialPw1" placeholder="คำตอบแปลงสูตร" autocomplete="off" />
+    <button id="checkSpecialBtn" disabled>ตรวจคำตอบ</button>
+  </div>
+
+  <div id="step3" style="display:none;">
+    <input type="text" id="specialPw2" placeholder="กรอกคำตอบซ้ำอีกครั้ง" autocomplete="off" />
+    <button id="finalCheckBtn" disabled>ตรวจคำตอบรอบที่สอง</button>
+  </div>
+
+  <div id="winFlash"></div>
+  <button id="nextButton" onclick="location.href='level11.html'">▶️ ไปด่านถัดไป</button>
+
+<script>
+  const pw1 = document.getElementById("pw1");
+  const pw2 = document.getElementById("pw2");
+  const specialPw1 = document.getElementById("specialPw1");
+  const specialPw2 = document.getElementById("specialPw2");
+  const checkSpecialBtn = document.getElementById("checkSpecialBtn");
+  const finalCheckBtn = document.getElementById("finalCheckBtn");
+  const rulesContainer = document.getElementById("rules");
+  const winFlash = document.getElementById("winFlash");
+  const nextBtn = document.getElementById("nextButton");
+  const step1 = document.getElementById("step1");
+  const step2 = document.getElementById("step2");
+  const step3 = document.getElementById("step3");
+
+  let originalPassword = "";
+
+  const rulesList = [
+    {
+      text: "1. ความยาวรหัสผ่านต้องอย่างน้อย 20 ตัวอักษร",
+      test: pw => pw.length >= 20
+    },
+    {
+      text: "2. ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 3 ตัว",
+      test: pw => (pw.match(/[A-Z]/g) || []).length >= 3
+    },
+    {
+      text: "3. ต้องมีตัวพิมพ์เล็กอย่างน้อย 4 ตัว",
+      test: pw => (pw.match(/[a-z]/g) || []).length >= 4
+    },
+    {
+      text: "4. ต้องมีอักขระพิเศษอย่างน้อย 3 ตัว (@#$%^&*! )",
+      test: pw => (pw.match(/[@#$%^&*!]/g) || []).length >= 3
+    },
+    {
+      text: "5. ห้ามใส่ตัวเลขซ้ำติดกัน เช่น 11, 22, 33",
+      test: pw => !(/(\d)\1/.test(pw))
+    },
+    {
+      text: "6. ห้ามใส่ตัวเลขเรียงกันติดกัน เช่น 123 หรือ 987",
+      test: pw => {
+        for(let i=0; i<pw.length-2; i++) {
+          if(/\d/.test(pw[i]) && /\d/.test(pw[i+1]) && /\d/.test(pw[i+2])) {
+            let a = +pw[i], b = +pw[i+1], c = +pw[i+2];
+            if(b === a+1 && c === b+1) return false;
+            if(b === a-1 && c === b-1) return false;
+          }
+        }
+        return true;
+      }
+    },
+    {
+      text: "7. ต้องมีคำภาษาอังกฤษ ≥ 2 คำ โดยแต่ละคำต้องมีความยาว ≥ 7 ตัวอักษร",
+      test: pw => {
+        const words = pw.match(/[a-zA-Z]{7,}/g) || [];
+        return words.length >= 2;
+      }
+    },
+    {
+      text: "8. ตัวพิมพ์ใหญ่กับพิมพ์เล็ก ต้องไม่ติดกันในรหัสผ่าน",
+      test: pw => {
+        for(let i=0; i<pw.length-1; i++) {
+          if(
+            (/[A-Z]/.test(pw[i]) && /[a-z]/.test(pw[i+1])) ||
+            (/[a-z]/.test(pw[i]) && /[A-Z]/.test(pw[i+1]))
+          ) return false;
+        }
+        return true;
+      }
+    },
+    {
+      text: "9. ตัวเลขต้องไม่ติดกับตัวอักษร (ไม่ว่าจะพิมพ์ใหญ่หรือล่าง)",
+      test: pw => {
+        for(let i=0; i<pw.length-1; i++) {
+          if(
+            (/\d/.test(pw[i]) && /[a-zA-Z]/.test(pw[i+1])) ||
+            (/[a-zA-Z]/.test(pw[i]) && /\d/.test(pw[i+1]))
+          ) return false;
+        }
+        return true;
+      }
+    },
+    {
+      text: "10. ต้องมีเลขหลังจุดทศนิยม 9 ตัวแรกของค่าพาย (π) ตั้งแต่ตัวที่ 10 ถึง 18 (589793238)",
+      test: pw => {
+        const piPart = "589793238";
+        return pw.includes(piPart);
+      }
+    },
+    {
+      text: "11. รหัสผ่านทั้งสองช่องต้องเหมือนกัน",
+      test: (pw, confirmPw) => pw === confirmPw && pw.length > 0
+    }
+  ];
+
+  function updateRules() {
+    const pw = pw1.value;
+    const confirmPw = pw2.value;
+    rulesContainer.innerHTML = "";
+    let passedAll = true;
+
+    rulesList.forEach(rule => {
+      const passed = rule.test.length === 1 ? rule.test(pw) : rule.test(pw, confirmPw);
+      if(!passed) passedAll = false;
+      const div = document.createElement("div");
+      div.className = "rule " + (passed ? "pass" : "fail");
+      div.textContent = (passed ? "✅ " : "❌ ") + rule.text;
+      rulesContainer.appendChild(div);
+    });
+
+    if(passedAll){
+      triggerWinEffect();
+    }
+  }
+
+  function triggerWinEffect(){
+    pw1.disabled = true;
+    pw2.disabled = true;
+
+    let flashCount = 0;
+    winFlash.style.opacity = 1;
+    winFlash.style.filter = "drop-shadow(0 0 30px red)";
+
+    const interval = setInterval(() => {
+      flashCount++;
+      if(flashCount % 2 === 0){
+        winFlash.style.opacity = 1;
+        document.body.style.transform = "translateX(5px)";
+      } else {
+        winFlash.style.opacity = 0;
+        document.body.style.transform = "translateX(-5px)";
+      }
+      if(flashCount > 10){
+        clearInterval(interval);
+        winFlash.style.opacity = 0;
+        document.body.style.transform = "translateX(0)";
+        proceedToStep2();
+      }
+    }, 80);
+  }
+
+  function proceedToStep2(){
+    originalPassword = pw1.value;
+    step1.style.display = "none";
+    step2.style.display = "block";
+
+    specialPw1.value = "";
+    specialPw2.value = "";
+    checkSpecialBtn.disabled = true;
+    finalCheckBtn.disabled = true;
+  }
+
+  // แปลงรหัสตามเงื่อนไขพิเศษใหม่
+  function transformPassword(pw){
+    const vowels = new Set(['a','e','i','o','u','A','E','I','O','U']);
+    const specialsRegex = /[@#$%^&*!]/g;
+
+    // ลบอักขระพิเศษ
+    let cleaned = pw.replace(specialsRegex, '');
+
+    let result = "";
+    for(let ch of cleaned){
+      if(/\d/.test(ch)){
+        // ลบ 1 จากตัวเลข ถ้าเป็น 0 ให้เป็น 9
+        let n = parseInt(ch,10);
+        n = n === 0 ? 9 : n - 1;
+        result += n.toString();
+      } else if(vowels.has(ch)){
+        // ถ้าเป็นสระแปลงเป็นพิมพ์ใหญ่
+        result += ch.toUpperCase();
+      } else {
+        // ตัวอื่นใส่ตามเดิม
+        result += ch;
+      }
+    }
+    return result;
+  }
+
+  function checkSpecialInput(){
+    checkSpecialBtn.disabled = specialPw1.value.length === 0;
+  }
+
+  function checkFinalInput(){
+    finalCheckBtn.disabled = !(specialPw2.value.length === specialPw1.value.length && specialPw2.value.length > 0);
+  }
+
+  checkSpecialBtn.addEventListener('click', () => {
+    const transformed = transformPassword(originalPassword);
+    if(specialPw1.value === transformed){
+      step2.style.display = "none";
+      step3.style.display = "block";
+      specialPw2.value = "";
+      finalCheckBtn.disabled = true;
+    } else {
+      shakeScreen();
+    }
+  });
+
+  finalCheckBtn.addEventListener('click', () => {
+    if(specialPw1.value === specialPw2.value){
+      nextBtn.style.display = "inline-block";
+      finalCheckBtn.disabled = true;
+      specialPw1.disabled = true;
+      specialPw2.disabled = true;
+      checkSpecialBtn.disabled = true;
+      const congrats = document.createElement("h2");
+      congrats.textContent = "🎉ก็ไม่เท่าไหร่นี่หว่าาา🎉";
+      congrats.style.color = "gold";
+      congrats.style.textAlign = "center";
+      congrats.style.textShadow = "0 0 15px gold";
+      congrats.style.marginTop = "20px";
+      document.body.appendChild(congrats);
+    } else {
+      shakeScreen();
+      setTimeout(() => {
+        resetGame();
+      }, 600);
+    }
+  });
+
+  function resetGame(){
+    step2.style.display = "none";
+    step3.style.display = "none";
+    step1.style.display = "block";
+    pw1.disabled = false;
+    pw2.disabled = false;
+    pw1.value = "";
+    pw2.value = "";
+    specialPw1.value = "";
+    specialPw2.value = "";
+    nextBtn.style.display = "none";
+    finalCheckBtn.disabled = true;
+    checkSpecialBtn.disabled = true;
+    originalPassword = "";
+    updateRules();
+  }
+
+  function shakeScreen(){
+    document.body.classList.add("shake");
+    setTimeout(() => {
+      document.body.classList.remove("shake");
+    }, 500);
+  }
+
+  pw1.addEventListener("input", updateRules);
+  pw2.addEventListener("input", updateRules);
+  specialPw1.addEventListener("input", checkSpecialInput);
+  specialPw2.addEventListener("input", checkFinalInput);
+
+  updateRules();
+
+</script>
+</body>
+</html>
