@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Endgame Final</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: #00ff00;
+      font-family: monospace;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    #matrixCanvas {
+      position: fixed;
+      z-index: 0;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #mainText {
+      position: absolute;
+      top: 35%;
+      width: 100%;
+      text-align: center;
+      font-size: 24px;
+      z-index: 2;
+    }
+
+    #console {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      font-size: 16px;
+      white-space: pre-wrap;
+      z-index: 2;
+    }
+
+    .error {
+      color: red;
+      text-shadow: 0 0 8px red;
+    }
+
+    .success {
+      color: gold;
+      text-shadow: 0 0 15px gold;
+    }
+
+    .glow {
+      animation: glow 1s infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 0 0 5px lime; }
+      to { text-shadow: 0 0 15px lime; }
+    }
+
+    @keyframes shake {
+      0% { transform: translate(1px, 0); }
+      25% { transform: translate(-1px, 1px); }
+      50% { transform: translate(1px, -1px); }
+      75% { transform: translate(-1px, -1px); }
+      100% { transform: translate(0, 1px); }
+    }
+
+    .shake {
+      animation: shake 0.1s infinite;
+    }
+
+    #passwordBox {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+      z-index: 2;
+      position: absolute;
+      top: 60%;
+      width: 100%;
+    }
+
+    #passwordInput {
+      padding: 10px;
+      font-size: 18px;
+      border: 2px solid lime;
+      background: black;
+      color: #00ff00;
+      animation: glow 1s infinite alternate;
+    }
+
+    #loginBtn {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: black;
+      color: lime;
+      border: 2px solid lime;
+      cursor: pointer;
+    }
+
+    #loginBtn:hover {
+      background: lime;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrixCanvas"></canvas>
+  <div id="mainText">เล่นจบแล้ว ไม่มีอะไรต่อแล้ว<br>เล่นใหม่ก็แล้วกัน</div>
+  <div id="console">/RESET Game .</div>
+  <div id="passwordBox">
+    <input id="passwordInput" placeholder="ใส่รหัสเพื่อเข้าสู่ระบบ" />
+    <br />
+    <button id="loginBtn" onclick="location.href='index.html'">เข้าสู่ระบบ</button>
+  </div>
+
+  <script>
+    // === MATRIX EFFECT ===
+    const canvas = document.getElementById("matrixCanvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+
+    const letters = "アイウエオカキクケコサシスセソ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+    const drops = Array(Math.floor(columns)).fill(1);
+
+    function draw() {
+      ctx.fillStyle = "rgba(5, 0, 0, 0.2)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#0F0";
+      ctx.font = fontSize + "px monospace";
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = letters.charAt(Math.floor(Math.random() * letters.length));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+
+        drops[i]++;
+      }
+    }
+
+    setInterval(draw, 33);
+
+    // === MAIN SEQUENCE ===
+    const mainText = document.getElementById('mainText');
+    const consoleDiv = document.getElementById('console');
+    const passBox = document.getElementById('passwordBox');
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    const printLine = async (text, cls = '') => {
+      const span = document.createElement('span');
+      span.className = cls;
+      consoleDiv.appendChild(document.createElement('br'));
+      consoleDiv.appendChild(span);
+      for (let ch of text) {
+        span.textContent += ch;
+        await delay(50);
+      }
+      await delay(500);
+    };
+
+    const dotLoop = async () => {
+      let count = 0;
+      while (count < 6) {
+        consoleDiv.textContent = '/RESET Game ';
+        for (let i = 0; i < 3; i++) {
+          consoleDiv.textContent += '.';
+          await delay(300);
+        }
+        count++;
+      }
+    };
+
+    const run = async () => {
+      await delay(3000);
+      mainText.textContent = '';
+      await dotLoop();
+
+      const fails = [
+        "/system reset fail [code 101]",
+        "/system reset fail [conflict found]",
+        "/system reset fail [code 73]",
+        "/system reset fail [unknown]",
+        "/system conflict: arguing with process #122",
+        "/system internal dispute detected...",
+        "/system logic loop triggered",
+        "/system reset fail [panic mode]",
+      ];
+
+      for (let fail of fails) {
+        document.body.classList.add('shake');
+        await printLine(fail, 'error');
+        await delay(400);
+        document.body.classList.remove('shake');
+      }
+
+      await delay(1000);
+      await printLine("system reset: retrying again...", '');
+      await delay(1000);
+      await printLine("system reset: ", '');
+      const successSpan = document.createElement('span');
+      successSpan.className = 'success glow';
+      consoleDiv.appendChild(successSpan);
+      for (let c of "success") {
+        successSpan.textContent += c;
+        await delay(300);
+      }
+
+      document.body.style.backgroundColor = '#002200';
+      mainText.textContent = "SYSTEM ONLINE";
+      mainText.className = 'success glow';
+      await delay(4000);
+
+      mainText.textContent = '';
+      let progressBar = '';
+      for (let i = 1; i <= 100; i++) {
+        if (i % 10 === 0) await delay(150);
+        if (i === 42 || i === 67) await delay(500);
+        progressBar = 'Downloading: ' + '|'.repeat(i) + ' '.repeat(100 - i) + ' ' + i + '%';
+        consoleDiv.textContent = progressBar;
+      }
+
+      await delay(1000);
+      passBox.style.display = 'block';
+    };
+
+    run();
+  </script>
+</body>
+</html>
