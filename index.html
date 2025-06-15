@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>The Password Game</title>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      position: relative;
+      overflow: hidden;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 1.2em;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: none;
+      outline: none;
+    }
+    .rule {
+      margin: 8px 0;
+    }
+    .pass { color: #0f0; }
+    .fail { color: #f33; }
+
+    #goldFlash {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, gold, transparent);
+      opacity: 0;
+      z-index: 999;
+      pointer-events: none;
+      transition: opacity 1s ease-out;
+    }
+
+    #nextButton {
+      display: none;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #fff200;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1em;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #nextButton:hover {
+      background: #ffe600;
+    }
+  </style>
+</head>
+<body>
+  <h1>The Password Game 🔐</h1>
+  <p>ใส่รหัสผ่านของคุณ แล้วผ่านกฎทั้งหมดเพื่อชนะ</p>
+  <input type="text" id="password" placeholder="พิมพ์รหัสผ่าน...">
+
+  <div id="rules"></div>
+  <div id="goldFlash"></div>
+  <button id="nextButton" onclick="location.href='level2.html'">▶️ ไปด่านถัดไป</button>
+
+  <script>
+    const rulesList = [
+      { text: "ต้องมีอย่างน้อย 1 ตัวพิมพ์ใหญ่ (A-Z)", test: pw => /[A-Z]/.test(pw) },
+      { text: "ต้องมีอย่างน้อย 1 ตัวพิมพ์เล็ก (a-z)", test: pw => /[a-z]/.test(pw) },
+      { text: "ต้องมีอย่างน้อย 1 ตัวเลข (0-9)", test: pw => /\d/.test(pw) },
+      { text: "ต้องมีอย่างน้อย 1 อักขระพิเศษ (!@#$%^&*)", test: pw => /[!@#$%^&*]/.test(pw) },
+      { text: "ต้องมีความยาวอย่างน้อย 10 ตัวอักษร", test: pw => pw.length >= 10 },
+      { text: "ห้ามมีคำว่า 'password'", test: pw => !/password/i.test(pw) },
+      { text: "ผลรวมของตัวเลขทั้งหมดในรหัสผ่านต้องเท่ากับ 25", test: pw => {
+        let digits = pw.match(/\d/g) || [];
+        let sum = digits.reduce((a,b)=>a+Number(b), 0);
+        return sum === 25;
+      }},
+      { text: "ต้องมีตัวอักษร 'z' อยู่ในตำแหน่งที่ 5", test: pw => pw[4] === 'z' },
+      { text: "ห้ามมีตัวอักษรซ้ำติดกัน", test: pw => !/(.)\1/.test(pw) },
+      { text: "ต้องมีอีโมจิอย่างน้อย 1 ตัว 😅🎉🔥💀", test: pw => /[\u{1F600}-\u{1F64F}]/u.test(pw) },
+      { text: "⏰ ตัวเลขตัวสุดท้ายของรหัสผ่านต้องตรงกับนาทีของเวลาปัจจุบัน", test: pw => {
+        let lastDigit = (pw.match(/\d/g) || []).pop();
+        let minute = new Date().getMinutes() % 10; // เอาเฉพาะหลักหน่วยของนาที
+        return Number(lastDigit) === minute;
+      }},
+      { text: "🚫 ห้ามมีเลข 0 ในรหัสผ่าน", test: pw => !/0/.test(pw) },
+    ];
+
+    const rulesContainer = document.getElementById("rules");
+    const input = document.getElementById("password");
+    const flash = document.getElementById("goldFlash");
+    const nextBtn = document.getElementById("nextButton");
+
+    let hasWon = false;
+
+    function updateRules() {
+      const value = input.value;
+      rulesContainer.innerHTML = "";
+      let passedAll = true;
+      rulesList.forEach(rule => {
+        const passed = rule.test(value);
+        if (!passed) passedAll = false;
+        const ruleDiv = document.createElement("div");
+        ruleDiv.className = "rule " + (passed ? "pass" : "fail");
+        ruleDiv.textContent = (passed ? "✅ " : "❌ ") + rule.text;
+        rulesContainer.appendChild(ruleDiv);
+      });
+
+      if (passedAll && !hasWon && value.length > 0) {
+        hasWon = true;
+        input.disabled = true;
+
+        const win = document.createElement("h2");
+        win.style.color = "#0f0";
+        win.textContent = "🎉 ยินดีด้วย! คุณชนะแล้ว!";
+        rulesContainer.appendChild(win);
+
+        flash.style.opacity = 1;
+        setTimeout(() => {
+          flash.style.opacity = 0;
+          nextBtn.style.display = "inline-block";
+        }, 1000);
+      }
+    }
+
+    input.addEventListener("input", updateRules);
+    updateRules();
+  </script>
+</body>
+</html>
