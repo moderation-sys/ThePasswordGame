@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Password Game - Level 5</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #000;
+      color: #00ff00;
+      font-family: monospace;
+      animation: flicker 1.5s infinite;
+      user-select: none;
+    }
+
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        background-color: #000;
+      }
+      20%, 22%, 24%, 55% {
+        background-color: #111;
+      }
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 1.5em;
+      background: #111;
+      color: #0f0;
+      border: 2px solid #0f0;
+      border-radius: 5px;
+      outline: none;
+      letter-spacing: 2px;
+    }
+
+    .rule {
+      margin: 6px 0;
+    }
+
+    .pass {
+      color: #0f0;
+    }
+
+    .fail {
+      color: #f33;
+    }
+
+    #winFlash {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, gold, transparent);
+      opacity: 0;
+      z-index: 999;
+      pointer-events: none;
+      transition: opacity 1s ease-out;
+    }
+
+    #nextButton {
+      display: none;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #fff200;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1em;
+      cursor: pointer;
+      font-weight: bold;
+      color: black;
+    }
+
+    #nextButton:hover {
+      background: #ffe600;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 PASSWORD GAME: LEVEL 5🔐</h1>
+  <p>ตั้งรหัสผ่านที่ผ่านทุกเงื่อนไขต่อไปนี้ (ไม่จำกัดความยาว)</p>
+  <input type="text" id="password" placeholder="พิมพ์รหัสผ่านที่นี่...">
+  <div id="rules"></div>
+  <div id="winFlash"></div>
+  <button id="nextButton" onclick="location.href='level6.html'">▶️ ไปด่านถัดไป</button>
+
+  <script>
+    const input = document.getElementById("password");
+    const rulesContainer = document.getElementById("rules");
+    const flash = document.getElementById("winFlash");
+    const nextBtn = document.getElementById("nextButton");
+
+    function isPrime(n) {
+      if (n < 2) return false;
+      for (let i = 2; i <= Math.sqrt(n); i++) {
+        if (n % i === 0) return false;
+      }
+      return true;
+    }
+
+    const rulesList = [
+      {
+        text: "1. รหัสผ่านต้องมีความยาวอย่างน้อย 12 ตัว",
+        test: pw => pw.length >= 12
+      },
+      {
+        text: "2. ต้องมีตัวพิมพ์ใหญ่ตั้งแต่ 3 ตัวขึ้นไป",
+        test: pw => (pw.match(/[A-Z]/g) || []).length >= 3
+      },
+      {
+        text: "3. ต้องมีตัวพิมพ์เล็กตั้งแต่ 4 ตัวขึ้นไป",
+        test: pw => (pw.match(/[a-z]/g) || []).length >= 4
+      },
+      {
+        text: "4. ต้องมีตัวเลขตั้งแต่ 4 ตัวขึ้นไป (ห้ามมีเลข 0)",
+        test: pw => {
+          const nums = pw.match(/[1-9]/g) || [];
+          const zeros = pw.match(/0/g) || [];
+          return nums.length >= 4 && zeros.length === 0;
+        }
+      },
+      {
+        text: "5. ต้องมีอักขระพิเศษอย่างน้อย 3 ตัว (@#$%^&*!)",
+        test: pw => (pw.match(/[@#$%^&*!]/g) || []).length >= 3
+      },
+      {
+        text: "6. ผลรวมของตัวเลขทั้งหมดต้องเป็นจำนวนเฉพาะ และมากกว่า 30",
+        test: pw => {
+          const digits = pw.match(/\d/g) || [];
+          const sum = digits.reduce((a,b) => a + Number(b), 0);
+          return sum > 30 && isPrime(sum);
+        }
+      },
+      {
+        text: "7. ห้ามมีตัวอักษรหรือเลขตัวเดียวกันเกิน 3 ครั้งติดต่อกัน",
+        test: pw => !/(.)\1{3,}/.test(pw)
+      },
+      {
+        text: "8. ต้องมีลำดับตัวเลขเรียงขึ้นอย่างน้อย 3 ตัว เช่น 123 หรือ 4567",
+        test: pw => {
+          for(let i = 0; i < pw.length - 2; i++) {
+            let c1 = pw.charCodeAt(i);
+            let c2 = pw.charCodeAt(i+1);
+            let c3 = pw.charCodeAt(i+2);
+            if(/[0-9]/.test(pw[i]) && /[0-9]/.test(pw[i+1]) && /[0-9]/.test(pw[i+2])) {
+              if(c1+1 === c2 && c2+1 === c3) return true;
+            }
+          }
+          return false;
+        }
+      },
+      {
+        text: "9. ต้องมีอักขระพิเศษซ้อนกัน 2 ตัวขึ้นไป เช่น @@, ##, $$",
+        test: pw => /([@#$%^&*!])\1+/.test(pw)
+      },
+      {
+        text: "10. ห้ามใช้ตัวอักษรภาษาอังกฤษสามตัวที่เป็น palindrome (เช่น aba, dad, mom)",
+        test: pw => {
+          for(let i=0; i < pw.length - 2; i++) {
+            const tri = pw.substring(i, i+3).toLowerCase();
+            if(tri[0] === tri[2] && /[a-z]/.test(tri[0])) return false;
+          }
+          return true;
+        }
+      },
+      {
+        text: "11. ต้องมีตัวพิมพ์ใหญ่อย่างน้อยหนึ่งตัวก่อนตัวพิมพ์เล็กตัวแรก",
+        test: pw => {
+          let upperIndex = pw.search(/[A-Z]/);
+          let lowerIndex = pw.search(/[a-z]/);
+          return upperIndex !== -1 && lowerIndex !== -1 && upperIndex < lowerIndex;
+        }
+      },
+      {
+        text: "12. ต้องไม่มีเลข 7 อยู่ติดกับเลข 8 (ไม่ว่าจะสลับกัน 78 หรือ 87)",
+        test: pw => !(/78|87/.test(pw))
+      },
+      {
+        text: "13. ตัวสุดท้ายต้องเป็นตัวพิมพ์ใหญ่หรืออักขระพิเศษเท่านั้น",
+        test: pw => /[A-Z@#$%^&*!]$/.test(pw)
+      },
+      {
+        text: "14. ต้องมีตัวเลขที่หารด้วย 3 ลงตัวอย่างน้อย 2 ตัว",
+        test: pw => {
+          const digits = pw.match(/\d/g) || [];
+          const count = digits.filter(d => Number(d) % 3 === 0).length;
+          return count >= 2;
+        }
+      },
+      {
+        text: "15. ห้ามมีลำดับตัวเลขถอยหลัง 3 ตัวติดกัน เช่น 321, 654",
+        test: pw => {
+          for(let i=0; i < pw.length - 2; i++) {
+            let c1 = pw.charCodeAt(i);
+            let c2 = pw.charCodeAt(i+1);
+            let c3 = pw.charCodeAt(i+2);
+            if(/[0-9]/.test(pw[i]) && /[0-9]/.test(pw[i+1]) && /[0-9]/.test(pw[i+2])) {
+              if(c1 - 1 === c2 && c2 - 1 === c3) return false;
+            }
+          }
+          return true;
+        }
+      },
+      {
+        text: "16. รหัสผ่านต้องมีความยาวไม่เกิน 20 ตัว",
+        test: pw => pw.length <= 20
+      }
+    ];
+
+    let hasWon = false;
+
+    function updateRules() {
+      const pw = input.value;
+      rulesContainer.innerHTML = "";
+      let passedAll = true;
+
+      rulesList.forEach(rule => {
+        const passed = rule.test(pw);
+        if(!passed) passedAll = false;
+        const div = document.createElement("div");
+        div.className = "rule " + (passed ? "pass" : "fail");
+        div.textContent = (passed ? "✅ " : "❌ ") + rule.text;
+        rulesContainer.appendChild(div);
+      });
+
+      if(passedAll && !hasWon) {
+        hasWon = true;
+        input.disabled = true;
+
+        const winMsg = document.createElement("h2");
+        winMsg.textContent = "🎉ผ่านอีกแล้วหรอ ต้องทำให้ยากขึ้นแล้วมั้ง🎉";
+        winMsg.style.color = "gold";
+        rulesContainer.appendChild(winMsg);
+
+        flash.style.opacity = 1;
+        setTimeout(() => {
+          flash.style.opacity = 0;
+          nextBtn.style.display = "inline-block";
+        }, 1200);
+      }
+    }
+
+    input.addEventListener("input", () => {
+      if (!hasWon) updateRules();
+    });
+
+    updateRules();
+  </script>
+</body>
+</html>
