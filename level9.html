@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Password Game - Level 8</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #000;
+      color: #00ff00;
+      font-family: monospace;
+      animation: flicker 1.5s infinite;
+      user-select: none;
+    }
+
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        background-color: #000;
+      }
+      20%, 22%, 24%, 55% {
+        background-color: #111;
+      }
+    }
+
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 1.3em;
+      background: #111;
+      color: #0f0;
+      border: 2px solid #0f0;
+      border-radius: 5px;
+      outline: none;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .rule {
+      margin: 5px 0;
+    }
+
+    .pass {
+      color: #0f0;
+    }
+
+    .fail {
+      color: #f33;
+    }
+
+    #winFlash {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, gold, transparent);
+      opacity: 0;
+      z-index: 999;
+      pointer-events: none;
+      transition: opacity 1s ease-out;
+    }
+
+    #nextButton {
+      display: none;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #fff200;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1em;
+      cursor: pointer;
+      font-weight: bold;
+      color: black;
+    }
+
+    #nextButton:hover {
+      background: #ffe600;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 PASSWORD GAME: LEVEL 8 🔐</h1>
+  <p>ตั้งรหัสผ่านที่ผ่านเงื่อนไขทั้งหมดด้านล่าง และกรอกให้เหมือนกัน 2 ครั้ง</p>
+  <input type="password" id="pw1" placeholder="รหัสผ่าน">
+  <input type="password" id="pw2" placeholder="ยืนยันรหัสผ่านอีกครั้ง">
+  <div id="rules"></div>
+  <div id="winFlash"></div>
+  <button id="nextButton" onclick="location.href='level9.html'">▶️ ไปด่านถัดไป</button>
+
+  <script>
+    const pw1 = document.getElementById("pw1");
+    const pw2 = document.getElementById("pw2");
+    const rulesContainer = document.getElementById("rules");
+    const flash = document.getElementById("winFlash");
+    const nextBtn = document.getElementById("nextButton");
+
+    const PI_PART = atob("MTQxNTkyNjUzNQ==");
+
+    const rulesList = [
+      {
+        text: "1. ความยาวรหัสผ่านต้องอย่างน้อย 20 ตัวอักษร",
+        test: pw => pw.length >= 20
+      },
+      {
+        text: "2. ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 3 ตัว",
+        test: pw => (pw.match(/[A-Z]/g) || []).length >= 3
+      },
+      {
+        text: "3. ต้องมีตัวพิมพ์เล็กอย่างน้อย 4 ตัว",
+        test: pw => (pw.match(/[a-z]/g) || []).length >= 4
+      },
+      {
+        text: "4. ต้องมีอักขระพิเศษอย่างน้อย 3 ตัว (@#$%^&*!)",
+        test: pw => (pw.match(/[@#$%^&*!]/g) || []).length >= 3
+      },
+      {
+        text: "5. ห้ามมีตัวเลขเรียงกัน เช่น 12345 หรือ 54321",
+        test: pw => !/012|123|234|345|456|567|678|789|987|876|765|654|543|432|321|210/.test(pw)
+      },
+      {
+        text: "6. ห้ามมีตัวอักษรซ้ำกัน",
+        test: pw => {
+          const letters = (pw.match(/[a-zA-Z]/g) || []);
+          return new Set(letters.map(l => l.toLowerCase())).size === letters.length;
+        }
+      },
+      {
+        text: "7. ห้ามให้ตัวใหญ่กับตัวเล็กอยู่ติดกัน",
+        test: pw => !/(?:[A-Z][a-z]|[a-z][A-Z])/.test(pw)
+      },
+      {
+        text: "8. ต้องมีเลขหลังจุดทศนิยม 10 ตัวแรกของค่าพาย (π)",
+        test: pw => pw.includes(PI_PART)
+      },
+      {
+        text: "9. รหัสผ่านทั้งสองช่องต้องเหมือนกัน",
+        test: (pw, confirmPw) => pw === confirmPw && pw.length > 0
+      }
+    ];
+
+    let hasWon = false;
+
+    function updateRules() {
+      const pw = pw1.value;
+      const confirmPw = pw2.value;
+      rulesContainer.innerHTML = "";
+      let passedAll = true;
+
+      rulesList.forEach(rule => {
+        const passed = rule.test.length === 1 ? rule.test(pw) : rule.test(pw, confirmPw);
+        if (!passed) passedAll = false;
+        const div = document.createElement("div");
+        div.className = "rule " + (passed ? "pass" : "fail");
+        div.textContent = (passed ? "✅ " : "❌ ") + rule.text;
+        rulesContainer.appendChild(div);
+      });
+
+      if (passedAll && !hasWon) {
+        hasWon = true;
+        pw1.disabled = true;
+        pw2.disabled = true;
+
+        const winMsg = document.createElement("h2");
+        winMsg.textContent = "🎉 ง่ายไปหรอเนี่ย 🎉";
+        winMsg.style.color = "gold";
+        rulesContainer.appendChild(winMsg);
+
+        flash.style.opacity = 1;
+        setTimeout(() => {
+          flash.style.opacity = 0;
+          nextBtn.style.display = "inline-block";
+        }, 1200);
+      }
+    }
+
+    pw1.addEventListener("input", updateRules);
+    pw2.addEventListener("input", updateRules);
+    updateRules();
+  </script>
+</body>
+</html>
