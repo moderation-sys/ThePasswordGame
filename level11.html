@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Password Endgame A02</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      background-color: #000;
+      color: #00ff99;
+      overflow: hidden;
+      transition: background-color 0.5s ease;
+    }
+    .scan-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0,255,100,0.05),
+        rgba(0,255,100,0.05) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      animation: scan 2s linear infinite;
+      z-index: -1;
+      transition: background 0.5s ease;
+    }
+    @keyframes scan {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 100px; }
+    }
+    h1 {
+      text-align: center;
+      color: #00ff99;
+      text-shadow: 0 0 5px #0f0;
+      margin-top: 30px;
+      transition: color 0.5s ease;
+    }
+    .container {
+      width: 90%;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid #00ff99;
+      border-radius: 10px;
+      box-shadow: 0 0 15px #00ff99;
+      transition: border-color 0.5s ease, box-shadow 0.5s ease;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      background-color: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
+      font-size: 16px;
+    }
+    button {
+      background-color: #0f0;
+      color: #000;
+      padding: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      margin-top: 10px;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0c0;
+    }
+    #next {
+      display: none;
+      background-color: #ff0;
+      color: #000;
+      font-weight: bold;
+      box-shadow: 0 0 10px #ff0;
+      animation: glowNext 1s infinite alternate;
+    }
+    @keyframes glowNext {
+      from { box-shadow: 0 0 10px #ff0; }
+      to { box-shadow: 0 0 30px #ff0; }
+    }
+    ul {
+      font-size: 14px;
+      list-style-type: none;
+      padding-left: 0;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    .shake {
+      animation: shake 0.4s;
+    }
+    @keyframes shake {
+      0% { transform: translate(2px, 0); }
+      25% { transform: translate(-2px, 0); }
+      50% { transform: translate(2px, 0); }
+      75% { transform: translate(-2px, 0); }
+      100% { transform: translate(0, 0); }
+    }
+    .glow {
+      animation: glowEffect 1s ease-in-out forwards;
+    }
+    @keyframes glowEffect {
+      0% { box-shadow: 0 0 10px red; }
+      100% { box-shadow: 0 0 50px red; }
+    }
+    /* โหมดพิเศษ */
+    body.special-mode {
+      background-color: #200000;
+      color: #ff4444;
+    }
+    .special-mode .scan-bg {
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,0,0,0.1),
+        rgba(255,0,0,0.1) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+    }
+    .special-mode h1 {
+      color: #ff4444;
+      text-shadow: 0 0 10px #ff2222;
+    }
+    .special-mode .container {
+      border-color: #ff4444;
+      box-shadow: 0 0 25px #ff4444;
+    }
+    .special-mode input[type="password"] {
+      color: #ff4444;
+      border-color: #ff4444;
+      background-color: #300000;
+    }
+    .special-mode button {
+      background-color: #ff4444;
+      color: #000;
+    }
+    .special-mode button:hover {
+      background-color: #cc0000;
+    }
+  </style>
+</head>
+<body>
+  <div class="scan-bg"></div>
+  <h1 id="title">The Password Endgame</h1>
+  <div class="container" id="game">
+    <label>ตั้งรหัสผ่าน:</label>
+    <input type="password" id="password" placeholder="รหัสผ่านของคุณ" autocomplete="off" />
+    <label>ยืนยันรหัสผ่าน:</label>
+    <input type="password" id="confirm" placeholder="กรอกอีกครั้ง" autocomplete="off" />
+
+    <ul id="rules">
+      <!-- แสดงเงื่อนไขปกติหรือพิเศษ -->
+    </ul>
+
+    <button id="checkBtn" style="display:none;">ตรวจรหัสผ่าน</button>
+    <div id="message"></div>
+    <button id="next" onclick="location.href='level0.html">ไปด่านถัดไป</button>
+  </div>
+
+  <script>
+    const passwordInput = document.getElementById("password");
+    const confirmInput = document.getElementById("confirm");
+    const checkBtn = document.getElementById("checkBtn");
+    const message = document.getElementById("message");
+    const nextBtn = document.getElementById("next");
+    const rulesList = document.getElementById("rules");
+    const container = document.getElementById("game");
+    const title = document.getElementById("title");
+    const scanBg = document.querySelector(".scan-bg");
+    const body = document.body;
+
+    let specialMode = false;
+    let lastValidPassword = "";
+
+    // เงื่อนไขโหมดปกติ
+    const normalRulesText = [
+      "ต้องมีตัวพิมพ์ใหญ่และพิมพ์เล็ก",
+      "ต้องมีตัวเลขอย่างน้อย 3 ตัว",
+      "ต้องมีอักขระพิเศษ (!@#$%^&*(),.?\":{}|<>)",
+      "ต้องไม่มีอักขระซ้ำติดกัน",
+      "ห้ามตัวเลขติดกับตัวอักษร",
+      "ต้องมีคำภาษาอังกฤษ ≥2 คำ และรวมกัน ≥7 ตัว",
+      "ห้ามขึ้นต้นด้วยตัวเลข",
+      "ห้ามลงท้ายด้วยอักขระพิเศษ",
+      "ผลรวมของตัวเลขทั้งหมดในรหัสต้อง = 28",
+      "ผลคูณของตัวเลขทั้งหมดในรหัสต้อง = 6480",
+      "เลขคี่ต้องเป็นจำนวนเฉพาะอย่างน้อย 1 ตัว",
+      "ต้องมีตัวเลขที่หาร 3 ลงตัวอย่างน้อย 1 ตัว"
+    ];
+
+    const normalRules = [
+      pw => /[a-z]/.test(pw) && /[A-Z]/.test(pw),
+      pw => (pw.match(/\d/g) || []).length >= 3,
+      pw => /[!@#$%^&*(),.?":{}|<>]/.test(pw),
+      pw => !/(.)\1/.test(pw),
+      pw => !/[a-zA-Z]\d|\d[a-zA-Z]/.test(pw),
+      pw => {
+        const words = (pw.match(/[a-zA-Z]+/g) || []);
+        return words.join("").length >= 7 && words.length >= 2;
+      },
+      pw => !/^\d/.test(pw),
+      pw => !/[!@#$%^&*(),.?":{}|<>]$/.test(pw),
+      pw => {
+        const nums = (pw.match(/\d/g) || []).map(Number);
+        return nums.reduce((a, b) => a + b, 0) === 28;
+      },
+      pw => {
+        const nums = (pw.match(/\d/g) || []).map(Number);
+        return nums.reduce((a, b) => a * b, 1) === 6480;
+      },
+      pw => {
+        // มีเลขคี่ที่เป็นจำนวนเฉพาะอย่างน้อย 1 ตัว
+        const primes = [3,5,7,11,13,17,19,23,29];
+        const nums = (pw.match(/\d/g) || []).map(Number);
+        return nums.some(n => n % 2 === 1 && primes.includes(n));
+      },
+      pw => {
+        // มีเลขที่หาร 3 ลงตัวอย่างน้อย 1 ตัว
+        const nums = (pw.match(/\d/g) || []).map(Number);
+        return nums.some(n => n % 3 === 0);
+      }
+    ];
+
+    // เงื่อนไขโหมดพิเศษ
+    const specialRulesText = [
+      "สระ (aeiou) เป็นตัวเล็ก",
+      "ตัวอักษรที่ไม่ใช่สระเป็นตัวใหญ่",
+      "เลขคี่ -1 (ถ้าน้อยกว่า 0 เป็น 0)",
+      "เลขคู่ +1",
+      "กรอกรหัสผ่าน 2 ช่องต้องเหมือนกัน"
+    ];
+
+    // แสดงเงื่อนไขตามโหมด
+    function showRules() {
+      rulesList.innerHTML = "";
+      let arr = specialMode ? specialRulesText : normalRulesText;
+      arr.forEach((txt, i) => {
+        const li = document.createElement("li");
+        li.id = "rule" + i;
+        li.textContent = "❌ " + txt;
+        rulesList.appendChild(li);
+      });
+    }
+
+    // อัพเดตสถานะเงื่อนไขโหมดปกติ
+    function updateNormalRules(pw) {
+      normalRules.forEach((ruleFn, i) => {
+        const li = document.getElementById("rule" + i);
+        if (!li) return;
+        if (ruleFn(pw)) {
+          li.textContent = "✅ " + normalRulesText[i];
+        } else {
+          li.textContent = "❌ " + normalRulesText[i];
+        }
+      });
+    }
+
+    // ตรวจสอบโหมดปกติผ่านทั้งหมด
+    function checkNormalAllPass(pw) {
+      return normalRules.every(fn => fn(pw));
+    }
+
+    // แปลงรหัสในโหมดพิเศษ
+    function toSpecialModeString(str) {
+      let result = "";
+      for (let ch of str) {
+        if ("aeiou".includes(ch.toLowerCase())) {
+          result += ch.toLowerCase();
+        } else if (/[a-zA-Z]/.test(ch)) {
+          result += ch.toUpperCase();
+        } else if (/\d/.test(ch)) {
+          let num = parseInt(ch);
+          if (num % 2 === 0) {
+            num += 1;
+          } else {
+            num -= 1;
+            if (num < 0) num = 0;
+          }
+          result += num.toString();
+        } else {
+          result += ch;
+        }
+      }
+      return result;
+    }
+
+    // อัพเดตสถานะโหมดพิเศษ (แสดง ✔❌ ตามกติกา)
+    function updateSpecialRules(pw, conf) {
+      specialRulesText.forEach((txt, i) => {
+        const li = document.getElementById("rule" + i);
+        if (!li) return;
+        let pass = false;
+        switch(i) {
+          case 0: // สระเป็นตัวเล็ก
+            pass = [...pw].every(c => {
+              if ("aeiou".includes(c.toLowerCase())) return c === c.toLowerCase();
+              return true;
+            });
+            break;
+          case 1: // ตัวอักษรไม่ใช่สระเป็นตัวใหญ่
+            pass = [...pw].every(c => {
+              if (/[a-zA-Z]/.test(c) && !"aeiou".includes(c.toLowerCase())) return c === c.toUpperCase();
+              return true;
+            });
+            break;
+          case 2: // เลขคี่ -1 และเลขคู่ +1 ตรวจว่ารหัสตรงกับแปลงจาก lastValidPassword
+            pass = (pw === toSpecialModeString(lastValidPassword));
+            break;
+          case 3: // เลขคู่ +1 เลขคี่ -1 (เช็คเหมือน case 2)
+            pass = (pw === toSpecialModeString(lastValidPassword));
+            break;
+          case 4: // รหัสทั้งสองช่องต้องเหมือนกัน
+            pass = (pw === conf);
+            break;
+        }
+        li.textContent = (pass ? "✅ " : "❌ ") + txt;
+      });
+    }
+
+    // รีเซ็ตเกมทั้งหมด
+    function resetGame() {
+      alert("รหัสผ่านไม่ถูกต้อง หรือไม่ตรงกัน ระบบจะรีเซ็ตเกมใหม่");
+      passwordInput.value = "";
+      confirmInput.value = "";
+      checkBtn.style.display = "none";
+      message.innerHTML = "";
+      nextBtn.style.display = "none";
+      specialMode = false;
+      lastValidPassword = "";
+      body.classList.remove("special-mode");
+      title.textContent = "The Password Endgame";
+      scanBg.style.animationPlayState = "running";
+      container.classList.remove("shake", "glow");
+      showRules();
+      updateNormalRules("");
+      passwordInput.disabled = false;
+      confirmInput.disabled = false;
+    }
+
+    // เอฟเฟกต์สั่นหน้าจอสีแดง
+    function shakeScreenRed(callback) {
+      body.style.backgroundColor = "#800000";
+      container.classList.add("shake");
+      setTimeout(() => {
+        container.classList.remove("shake");
+        body.style.backgroundColor = "#200000";
+        callback();
+      }, 800);
+    }
+
+    // สำเร็จโหมดปกติ เปลี่ยนไปโหมดพิเศษ
+    function successNormalMode(pw) {
+      lastValidPassword = pw;
+      message.innerHTML = "<p style='color:lime'>✅ ผ่านด่านโหมดปกติ!</p>";
+      passwordInput.disabled = true;
+      confirmInput.disabled = true;
+      checkBtn.disabled = true;
+
+      // เอฟเฟกต์สั่นและเปลี่ยนธีม
+      shakeScreenRed(() => {
+        specialMode = true;
+        body.classList.add("special-mode");
+        title.textContent = "The Password Endgame - โหมดพิเศษ";
+        checkBtn.disabled = false;
+        checkBtn.style.display = "none";
+        passwordInput.disabled = false;
+        confirmInput.disabled = false;
+        passwordInput.value = "";
+        confirmInput.value = "";
+        message.innerHTML = "";
+        nextBtn.style.display = "none";
+        showRules();
+      });
+    }
+
+    // สำเร็จโหมดพิเศษ
+    function successSpecialMode() {
+      message.innerHTML = "<p style='color:lime'>✅ ผ่านด่านโหมดพิเศษ!</p>";
+      passwordInput.disabled = true;
+      confirmInput.disabled = true;
+      checkBtn.disabled = true;
+      nextBtn.style.display = "block";
+      container.classList.add("glow");
+    }
+
+    // ฟังก์ชันอัพเดตสถานะปุ่มตรวจสอบ
+    function updateCheckButton() {
+      const pw = passwordInput.value;
+      const conf = confirmInput.value;
+      if (pw.length > 0 && conf.length > 0 && pw.length === conf.length) {
+        checkBtn.style.display = "block";
+      } else {
+        checkBtn.style.display = "none";
+      }
+    }
+
+    // อัพเดตสถานะเงื่อนไขตามโหมด
+    function updateRulesStatus() {
+      const pw = passwordInput.value;
+      const conf = confirmInput.value;
+      if (!specialMode) {
+        updateNormalRules(pw);
+      } else {
+        updateSpecialRules(pw, conf);
+      }
+    }
+
+    // event listeners
+    passwordInput.addEventListener("input", () => {
+      updateCheckButton();
+      updateRulesStatus();
+    });
+    confirmInput.addEventListener("input", () => {
+      updateCheckButton();
+      updateRulesStatus();
+    });
+
+    checkBtn.addEventListener("click", () => {
+      const pw = passwordInput.value;
+      const conf = confirmInput.value;
+
+      if (!specialMode) {
+        // ตรวจโหมดปกติ
+        if (pw !== conf) {
+          alert("รหัสผ่านและยืนยันไม่ตรงกัน");
+          resetGame();
+          return;
+        }
+        if (!checkNormalAllPass(pw)) {
+          alert("รหัสผ่านไม่ผ่านเงื่อนไขโหมดปกติ");
+          resetGame();
+          return;
+        }
+        successNormalMode(pw);
+      } else {
+        // ตรวจโหมดพิเศษ
+        // รหัสต้องตรงกับแปลงจาก lastValidPassword
+        const specialPw = toSpecialModeString(lastValidPassword);
+        if (pw !== specialPw) {
+          alert("รหัสผ่านโหมดพิเศษไม่ตรงตามกติกา");
+          resetGame();
+          return;
+        }
+        if (pw !== conf) {
+          alert("รหัสผ่านและยืนยันโหมดพิเศษไม่ตรงกัน");
+          resetGame();
+          return;
+        }
+        successSpecialMode();
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      alert("ไปยังด่านถัดไป...");
+      // เพิ่มการนำทางไปด่านถัดไปได้ที่นี่
+    });
+
+    // เริ่มเกม
+    showRules();
+    updateNormalRules("");
+  </script>
+</body>
+</html>
