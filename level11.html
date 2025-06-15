@@ -164,7 +164,7 @@
 
     <button id="checkBtn" style="display:none;">ตรวจรหัสผ่าน</button>
     <div id="message"></div>
-    <button id="nextBotton" onclick="location.href='level0.html'">END</button>
+    <button id="nextButton" style="display:none;">END</button>
   </div>
 
   <script>
@@ -387,12 +387,18 @@
     // JS
 const nextBtn = document.getElementById("nextButton");
 
-function successSpecialMode() {
+    function successSpecialMode() {
   message.innerHTML = "<p style='color:lime'>✅ ผ่านด่านโหมดพิเศษ!</p>";
   passwordInput.disabled = true;
   confirmInput.disabled = true;
   checkBtn.disabled = true;
-  nextBtn.style.display = "block"; // แสดงปุ่ม END
+
+  // แสดงปุ่ม END และใส่ลิงก์
+  nextBtn.style.display = "block";
+  nextBtn.onclick = () => {
+    location.href = "level0.html";
+  };
+
   container.classList.add("glow");
 }
     // ฟังก์ชันอัพเดตสถานะปุ่มตรวจสอบ
