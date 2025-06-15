@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Password Game - Level 6</title>
+  <style>
+    body {
+      background: black;
+      color: #0f0;
+      font-family: monospace;
+      padding: 20px;
+      user-select: none;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 1.2em;
+      background: #111;
+      border: 2px solid #0f0;
+      color: #0f0;
+      border-radius: 5px;
+    }
+    .rule { margin: 6px 0; }
+    .pass { color: #0f0; }
+    .fail { color: #f33; }
+    #winFlash {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, lime, transparent);
+      opacity: 0;
+      z-index: 99;
+      pointer-events: none;
+      transition: opacity 1s;
+    }
+    #nextButton {
+      display: none;
+      padding: 10px 20px;
+      margin-top: 20px;
+      background: yellow;
+      border: none;
+      border-radius: 5px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      color: black;
+    }
+    label {
+      display: block;
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 PASSWORD GAME: LEVEL 6</h1>
+  <p>ใส่รหัสผ่าน 2 ครั้งให้ตรงกัน และผ่านเงื่อนไขทั้งหมด</p>
+  
+  <label>
+    รหัสผ่าน:
+    <input type="password" id="password1" placeholder="รหัสผ่าน">
+  </label>
+  
+  <label>
+    ยืนยันรหัสผ่าน:
+    <input type="password" id="password2" placeholder="ยืนยันรหัสผ่านอีกครั้ง">
+  </label>
+
+  <div id="rules"></div>
+  <div id="matchStatus"></div>
+  <div id="winFlash"></div>
+  <button id="nextButton" onclick="location.href='level7.html'">▶️ ไปด่านถัดไป</button>
+
+  <script>
+    const pw1 = document.getElementById("password1");
+    const pw2 = document.getElementById("password2");
+    const rulesContainer = document.getElementById("rules");
+    const matchStatus = document.getElementById("matchStatus");
+    const flash = document.getElementById("winFlash");
+    const nextBtn = document.getElementById("nextButton");
+
+    const rules = [
+      {
+        text: "1. ความยาวอย่างน้อย 13 ตัว",
+        test: pw => pw.length >= 13
+      },
+      {
+        text: "2. มีตัวพิมพ์ใหญ่อย่างน้อย 2 ตัว",
+        test: pw => (pw.match(/[A-Z]/g) || []).length >= 2
+      },
+      {
+        text: "3. มีอักขระพิเศษอย่างน้อย 2 ตัว เช่น @#$%^&*!",
+        test: pw => (pw.match(/[@#$%^&*!]/g) || []).length >= 2
+      },
+      {
+        text: "4. ห้ามมีอักขระซ้ำติดกัน (เช่น aa, 11, @@)",
+        test: pw => !/(.)\1/.test(pw)
+      },
+      {
+        text: "5. ต้องขึ้นต้นด้วยพิมพ์เล็ก ลงท้ายด้วยพิมพ์ใหญ่",
+        test: pw => /^[a-z].*[A-Z]$/.test(pw)
+      },
+      {
+        text: "6. ห้ามมีตัวอักษรหรือเลขเรียงกัน (เช่น abc, 123, xyz, 789)",
+        test: pw => {
+          for (let i = 0; i < pw.length - 2; i++) {
+            let c1 = pw.charCodeAt(i);
+            let c2 = pw.charCodeAt(i + 1);
+            let c3 = pw.charCodeAt(i + 2);
+            if ((c1 + 1 === c2 && c2 + 1 === c3)) return false;
+          }
+          return true;
+        }
+      }
+    ];
+
+    let locked = false;
+
+    function updateValidation() {
+      if (locked) return;
+
+      const pw = pw1.value;
+      const confirmPw = pw2.value;
+      rulesContainer.innerHTML = "";
+      let allPass = true;
+
+      rules.forEach(rule => {
+        const ok = rule.test(pw);
+        if (!ok) allPass = false;
+        const div = document.createElement("div");
+        div.className = "rule " + (ok ? "pass" : "fail");
+        div.textContent = (ok ? "✅ " : "❌ ") + rule.text;
+        rulesContainer.appendChild(div);
+      });
+
+      if (pw && confirmPw) {
+        if (pw === confirmPw) {
+          matchStatus.innerHTML = "<span class='pass'>✅ รหัสตรงกัน</span>";
+          if (allPass) win();
+        } else {
+          matchStatus.innerHTML = "<span class='fail'>❌ รหัสไม่ตรงกัน</span>";
+        }
+      } else {
+        matchStatus.textContent = "";
+      }
+    }
+
+    function win() {
+      locked = true;
+      pw1.disabled = true;
+      pw2.disabled = true;
+      flash.style.opacity = 1;
+      const winMsg = document.createElement("h2");
+      winMsg.textContent = "🎉 ผ่านด่าน 6 เรียบร้อย! 🎉";
+      winMsg.style.color = "lime";
+      rulesContainer.appendChild(winMsg);
+      setTimeout(() => {
+        flash.style.opacity = 0;
+        nextBtn.style.display = "inline-block";
+      }, 1000);
+    }
+
+    pw1.addEventListener("input", updateValidation);
+    pw2.addEventListener("input", updateValidation);
+    updateValidation();
+  </script>
+</body>
+</html>
