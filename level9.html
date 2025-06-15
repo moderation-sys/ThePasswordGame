@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Password Game - Level 9</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+      user-select: none;
+      animation: glitch-bg 2s infinite;
+    }
+
+    @keyframes glitch-bg {
+      0%, 100% { background-color: #000; }
+      10% { background-color: #0a0a0a; }
+      20% { background-color: #111; }
+      30% { background-color: #000; }
+      40% { background-color: #1a1a1a; }
+      50% { background-color: #000; }
+      60% { background-color: #111; }
+      70% { background-color: #050505; }
+      80% { background-color: #000; }
+      90% { background-color: #0a0a0a; }
+    }
+
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 1.3em;
+      background: #111;
+      color: #0f0;
+      border: 2px solid #0f0;
+      border-radius: 5px;
+      outline: none;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .rule {
+      margin: 5px 0;
+    }
+
+    .pass {
+      color: #0f0;
+    }
+
+    .fail {
+      color: #f33;
+    }
+
+    #winFlash {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, lime, transparent);
+      opacity: 0;
+      z-index: 999;
+      pointer-events: none;
+      transition: opacity 1s ease-out;
+    }
+
+    #nextButton {
+      display: none;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #00ff88;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1em;
+      cursor: pointer;
+      font-weight: bold;
+      color: black;
+    }
+
+    #nextButton:hover {
+      background: #66ffc2;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚠️ PASSWORD GAME: LEVEL 9 ⚠️</h1>
+  <p>กรอกรหัสผ่านให้ตรงกับเงื่อนไขทั้งหมดและยืนยันรหัสอีกครั้ง</p>
+  <input type="password" id="pw1" placeholder="รหัสผ่าน">
+  <input type="password" id="pw2" placeholder="ยืนยันรหัสผ่านอีกครั้ง">
+  <div id="rules"></div>
+  <div id="winFlash"></div>
+  <button id="nextButton" onclick="location.href='level10.html'">▶️ ไปด่านถัดไป</button>
+
+  <script>
+    const pw1 = document.getElementById("pw1");
+    const pw2 = document.getElementById("pw2");
+    const rulesContainer = document.getElementById("rules");
+    const flash = document.getElementById("winFlash");
+    const nextBtn = document.getElementById("nextButton");
+
+    const PI_PART = atob("ODk3OTMyMzg0");
+
+    const rulesList = [
+      {
+        text: "1. ความยาวรหัสผ่านต้องอย่างน้อย 20 ตัวอักษร",
+        test: pw => pw.length >= 20
+      },
+      {
+        text: "2. ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 3 ตัว",
+        test: pw => (pw.match(/[A-Z]/g) || []).length >= 3
+      },
+      {
+        text: "3. ต้องมีตัวพิมพ์เล็กอย่างน้อย 4 ตัว",
+        test: pw => (pw.match(/[a-z]/g) || []).length >= 4
+      },
+      {
+        text: "4. ต้องมีอักขระพิเศษอย่างน้อย 3 ตัว (@#$%^&*!)",
+        test: pw => (pw.match(/[@#$%^&*!]/g) || []).length >= 3
+      },
+      {
+        text: "5. ห้ามมีตัวเลขเรียงกัน เช่น 12345 หรือ 54321",
+        test: pw => !/012|123|234|345|456|567|678|789|987|876|765|654|543|432|321|210/.test(pw)
+      },
+      {
+        text: "6. ห้ามมีตัวอักษรซ้ำกัน",
+        test: pw => {
+          const letters = (pw.match(/[a-zA-Z]/g) || []);
+          return new Set(letters.map(l => l.toLowerCase())).size === letters.length;
+        }
+      },
+      {
+        text: "7. ห้ามให้ตัวใหญ่กับตัวเล็กอยู่ติดกัน",
+        test: pw => !/(?:[A-Z][a-z]|[a-z][A-Z])/.test(pw)
+      },
+      {
+        text: "8. ต้องมีเลขหลังจุดทศนิยมของ π ตำแหน่งที่ 10–18 ",
+        test: pw => pw.includes(PI_PART)
+      },
+      {
+        text: "9. รหัสผ่านทั้งสองช่องต้องเหมือนกัน",
+        test: (pw, confirmPw) => pw === confirmPw && pw.length > 0
+      }
+    ];
+
+    let hasWon = false;
+
+    function updateRules() {
+      const pw = pw1.value;
+      const confirmPw = pw2.value;
+      rulesContainer.innerHTML = "";
+      let passedAll = true;
+
+      rulesList.forEach(rule => {
+        const passed = rule.test.length === 1 ? rule.test(pw) : rule.test(pw, confirmPw);
+        if(!passed) passedAll = false;
+        const div = document.createElement("div");
+        div.className = "rule " + (passed ? "pass" : "fail");
+        div.textContent = (passed ? "✅ " : "❌ ") + rule.text;
+        rulesContainer.appendChild(div);
+      });
+
+      if(passedAll && !hasWon) {
+        hasWon = true;
+        pw1.disabled = true;
+        pw2.disabled = true;
+
+        const winMsg = document.createElement("h2");
+        winMsg.textContent = "🎉เดะจะได้เจอของจริง🎉";
+        winMsg.style.color = "lime";
+        rulesContainer.appendChild(winMsg);
+
+        flash.style.opacity = 1;
+        setTimeout(() => {
+          flash.style.opacity = 0;
+          nextBtn.style.display = "inline-block";
+        }, 1200);
+      }
+    }
+
+    pw1.addEventListener("input", updateRules);
+    pw2.addEventListener("input", updateRules);
+    updateRules();
+  </script>
+</body>
+</html>
