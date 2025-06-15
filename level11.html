@@ -384,15 +384,17 @@
     }
 
     // สำเร็จโหมดพิเศษ
-    function successSpecialMode() {
-      message.innerHTML = "<p style='color:lime'>✅ ผ่านด่านโหมดพิเศษ!</p>";
-      passwordInput.disabled = true;
-      confirmInput.disabled = true;
-      checkBtn.disabled = true;
-      nextBtn.style.display = "block";
-      container.classList.add("glow");
-    }
+    // JS
+const nextBtn = document.getElementById("nextButton");
 
+function successSpecialMode() {
+  message.innerHTML = "<p style='color:lime'>✅ ผ่านด่านโหมดพิเศษ!</p>";
+  passwordInput.disabled = true;
+  confirmInput.disabled = true;
+  checkBtn.disabled = true;
+  nextBtn.style.display = "block"; // แสดงปุ่ม END
+  container.classList.add("glow");
+}
     // ฟังก์ชันอัพเดตสถานะปุ่มตรวจสอบ
     function updateCheckButton() {
       const pw = passwordInput.value;
